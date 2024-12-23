@@ -27,17 +27,18 @@ type Config struct {
 
 // 配置文件构造器.
 func NewConfig(dir string, opts ...ConfigOption) (*Config, error) {
+	// default config
 	c := Config{
 		Dir:           dir, // sstable 文件所在的目录路径
 		SSTFooterSize: 32,  // 对应 4 个 uint64，共 32 byte
 	}
 
-	// 加载配置项
+	// override config
 	for _, opt := range opts {
 		opt(&c)
 	}
 
-	// 兜底修复
+	// repaire config
 	repaire(&c)
 
 	return &c, c.check() // 校验一下配置是否合法，主要是 check 存放 sst 文件和 wal 文件的目录，如果有缺失则进行目录创建
