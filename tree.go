@@ -39,7 +39,7 @@ type Tree struct {
 	// lsm tree 停止时通过该 chan 传递信号
 	stopc chan struct{}
 
-	// memtable index，需要与 wal 文件一一对应
+	// memtable index，需要与 wal 文件一一对应，例如 0.wal -> 0，全局递增
 	memTableIndex int
 
 	// 每个 level 层新生成 sst 文件的序号，各 level 层内单调递增

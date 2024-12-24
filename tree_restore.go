@@ -131,7 +131,7 @@ func (t *Tree) constructMemtable() error {
 	return t.restoreMemTable(wals)
 }
 
-// 基于 wal 文件还原出一系列只读 memtable 和唯一一个读写 memtable
+// !基于 wal 文件还原出一系列只读 memtable 和唯一一个读写 memtable
 func (t *Tree) restoreMemTable(wals []fs.DirEntry) error {
 	// 1 wal 排序，index 单调递增，数据实时性也随之单调递增
 	sort.Slice(wals, func(i, j int) bool {
