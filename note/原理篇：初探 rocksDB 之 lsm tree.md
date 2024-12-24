@@ -19,7 +19,7 @@
    - 内存是易失性存储，倘若 memtable 在溢写磁盘前就宕机，那么导致的数据丢失问题如何解决？
      预写日志
    - 在 memtable 溢写磁盘的过程中，外部的写操作需要阻塞，所带来的性能问题如何解决？
-     “金蝉脱壳”，转化为只读memtable，建立一个全新空白的 active memtable，作为写操作的新入口，写操作不再需要阻塞
+     “金蝉脱壳”，转化为只读 memtable，建立一个全新空白的 active memtable，作为写操作的新入口，写操作不再需要阻塞
    - memtable 作为有序存储结构，内部采用什么样的数据结构进行实现？
      跳表：更简单的实现(容易调试、扩展功能)、`更细的并发锁粒度`
 
@@ -44,7 +44,7 @@
 
    • 首先 sstable 内部会进一步将 table 拆分为多个 block 块，其在逻辑意义上从属于同一个 sstable；
    • 其次，sstable 中会额外维护一个索引信息，其中记录了每个 block 的 k_min 和 k_max 以及每个块中各行的 k_max 和 k_min，便于辅助的查询操作
-   • 此外，lsm tree 还维护着一个全局索引信息，记录着不同 level 中，每个 sstable 对应的k_max 和 最小 k k_min 的范围
+   • 此外，lsm tree 还维护着一个全局索引信息，记录着不同 level 中，每个 sstable 对应的 k_max 和 最小 k k_min 的范围
    • 最后，每个 sstable 还维护着一个布隆过滤器 bloomfilter，用于快速判断一个 k 是否存在于当前 sstable 中.
 
 ## lsm tree 读写流程

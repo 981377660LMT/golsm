@@ -18,12 +18,13 @@ type Index struct {
 
 // 对应于 lsm tree 中的一个 sstable. 这是写入流程的视角
 type SSTWriter struct {
-	conf          *Config           // 配置文件
+	conf *Config // 配置文件
+
 	dest          *os.File          // sstable 对应的磁盘文件
-	dataBuf       *bytes.Buffer     // 数据块缓冲区 key -> val
-	filterBuf     *bytes.Buffer     // 过滤器块缓冲区 prev block offset -> filter bit map
-	indexBuf      *bytes.Buffer     // 索引块缓冲区 index key -> prev block offset, prev block size
-	blockToFilter map[uint64][]byte // prev block offset -> filter bit map
+	dataBuf       *bytes.Buffer     // 缓存整个 sstable 文件的所有 kv 数据，最终一次性落到 sst 文件
+	filterBuf     *bytes.Buffer     // 缓存整个 sstable 文件的过滤器数据，最终一次性落到 sst 文件
+	indexBuf      *bytes.Buffer     // 缓存整个 sstable 文件的索引数据，最终一次性落到 sst 文件
+	blockToFilter map[uint64][]byte // 基于内存 map 形式，记录 block 到 filter bitmap 的映射关系
 	index         []*Index          // index key -> prev block offset, prev block size
 
 	dataBlock     *Block   // 数据块

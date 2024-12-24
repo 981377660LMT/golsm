@@ -7,9 +7,9 @@ import (
 )
 
 func Test_SharedPrefixLen(t *testing.T) {
-	assert.Equal(t, SharedPrefixLen([]byte("a"), nil), 0)
-	assert.Equal(t, SharedPrefixLen([]byte("ab"), []byte("abc")), 2)
-	assert.Equal(t, SharedPrefixLen([]byte("ab"), []byte("c")), 0)
+	assert.Equal(t, Lcp([]byte("a"), nil), 0)
+	assert.Equal(t, Lcp([]byte("ab"), []byte("abc")), 2)
+	assert.Equal(t, Lcp([]byte("ab"), []byte("c")), 0)
 }
 
 func Test_GetSeparatorBetween(t *testing.T) {

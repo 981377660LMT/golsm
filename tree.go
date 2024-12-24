@@ -17,13 +17,11 @@ type Tree struct {
 
 	// 读写数据时使用的锁
 	dataLock sync.RWMutex
-
 	// 每层 node 节点使用的读写锁
 	levelLocks []sync.RWMutex
 
 	// 读写 memtable
 	memTable memtable.MemTable
-
 	// 只读 memtable
 	rOnlyMemTable []*memTableCompactItem
 
@@ -31,20 +29,20 @@ type Tree struct {
 	walWriter *wal.WALWriter
 
 	// lsm树状数据结构
+	// 每个节点对应为树中的一个 sst 文件. 第一维为层数，第二维为 sst 文件在某一层中的索引
 	nodes [][]*Node
 
-	// memtable 达到阈值时，通过该 chan 传递信号，进行溢写工作
+	// 接收只读 memtable 的通道，收到后会进行溢写磁盘操作
 	memCompactC chan *memTableCompactItem
-
-	// 某层 sst 文件大小达到阈值时，通过该 chan 传递信号，进行溢写工作
+	// 接收驱动 level sorted merge 操作信号的通道
 	levelCompactC chan int
-
 	// lsm tree 停止时通过该 chan 传递信号
 	stopc chan struct{}
 
 	// memtable index，需要与 wal 文件一一对应
 	memTableIndex int
 
+	// 每个 level 层新生成 sst 文件的序号，各 level 层内单调递增
 	// 各层 sstable 文件 seq. sstable 文件命名为 level_seq.sst
 	levelToSeq []atomic.Int32
 }

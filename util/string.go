@@ -1,6 +1,6 @@
 package util
 
-func SharedPrefixLen(a, b []byte) int {
+func Lcp(a, b []byte) int {
 	var i int
 	for ; i < len(a) && i < len(b); i++ {
 		if a[i] != b[i] {

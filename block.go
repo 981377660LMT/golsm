@@ -10,7 +10,8 @@ import (
 
 // sst 文件中的数据块，和索引、过滤器为一一对应关系
 type Block struct {
-	conf       *Config       // lsm tree 配置文件
+	conf *Config // lsm tree 配置文件
+
 	buffer     [30]byte      // 用于辅助转移数据的临时缓冲区
 	record     *bytes.Buffer // 用于复制溢写数据的缓冲区
 	entriesCnt int           // kv 对数量
@@ -34,7 +35,7 @@ func (b *Block) Append(key, value []byte) {
 	}()
 
 	// 获取和之前 key 的共享key前缀长度
-	sharedPrefixLen := util.SharedPrefixLen(b.prevKey, key)
+	sharedPrefixLen := util.Lcp(b.prevKey, key)
 
 	// 分别设置共享key长度||剩余key长度||值长度
 	n := binary.PutUvarint(b.buffer[0:], uint64(sharedPrefixLen))
