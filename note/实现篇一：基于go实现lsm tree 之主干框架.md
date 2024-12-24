@@ -29,3 +29,26 @@ https://mp.weixin.qq.com/s?__biz=MzkxMjQzMjA0OQ==&mid=2247484876&idx=1&sn=8514ad
    sstable 文件中针对每个 block 使用的过滤器，用于辅助快速判断一个 key 是否可能存在于某个 block 块中.
 
 ## 启动流程
+
+1.  构造配置
+    default -> override -> repair
+2.  启动lsm tree
+    ![alt text](image-5.png)
+    • 构造 lsm tree 实例
+
+    • 执行 constructTree 方法，读取 conf.Dir 下已存在的 sst 文件，在内存中还原出 lsm tree 的拓扑结构：nodes
+
+    • 异步启动 compact 协程，由于持续接收指令，执行 memtable 的溢写落盘操作或者 sstable 的 level sorted merge 操作
+
+    • 执行 constructMemtable 方法，读取 {conf.Dir}/walfile 目录下的 wal 文件，在内存中还原出一系列只读 memtable 和读写 memtable
+
+3.  compact协程
+    ![alt text](image-6.png)
+    compact 协程是异步持续运行的，`通过 for + select 实现一个自旋多路复用的模型`，持续监听 chan，处理 memtable 的溢写流程以及某个 level 层 sstable 的 compact 流程.
+
+## 读写流程
+
+1. 写流程
+   xx
+2. 读流程
+   ![alt text](image-7.png)
