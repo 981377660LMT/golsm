@@ -1,3 +1,5 @@
+// 用于读取ssttable的data数据
+
 package golsm
 
 import (

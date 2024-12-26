@@ -13,7 +13,7 @@ type Block struct {
 	conf *Config // lsm tree 配置文件
 
 	buffer     [30]byte      // 用于辅助转移数据的临时缓冲区
-	record     *bytes.Buffer // 用于复制溢写数据的缓冲区
+	record     *bytes.Buffer // 用于复制(从上层过来的)溢写数据的缓冲区
 	entriesCnt int           // kv 对数量
 	prevKey    []byte        // 最晚一笔写入的数据的 key
 }

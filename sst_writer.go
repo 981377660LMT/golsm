@@ -17,24 +17,26 @@ type Index struct {
 }
 
 // 对应于 lsm tree 中的一个 sstable. 这是写入流程的视角
+// !block -> 缓冲区 -> 磁盘
 type SSTWriter struct {
-	conf *Config // 配置文件
+	conf *Config  // 配置文件
+	dest *os.File // sstable 对应的磁盘文件
 
-	dest          *os.File          // sstable 对应的磁盘文件
-	dataBuf       *bytes.Buffer     // 缓存整个 sstable 文件的所有 kv 数据，最终一次性落到 sst 文件
-	filterBuf     *bytes.Buffer     // 缓存整个 sstable 文件的过滤器数据，最终一次性落到 sst 文件
-	indexBuf      *bytes.Buffer     // 缓存整个 sstable 文件的索引数据，最终一次性落到 sst 文件
-	blockToFilter map[uint64][]byte // 基于内存 map 形式，记录 block 到 filter bitmap 的映射关系
-	index         []*Index          // index key -> prev block offset, prev block size
+	dataBuf   *bytes.Buffer // !缓存整个 sstable 文件的所有 kv 数据，最终一次性落到 sst 文件
+	filterBuf *bytes.Buffer // 缓存整个 sstable 文件的过滤器数据，最终一次性落到 sst 文件
+	indexBuf  *bytes.Buffer // 缓存整个 sstable 文件的索引数据，最终一次性落到 sst 文件
 
-	dataBlock     *Block   // 数据块
-	filterBlock   *Block   // 过滤器块
-	indexBlock    *Block   // 索引块
+	blockToFilter map[uint64][]byte // 基于内存 map 形式，记录 block offset 到 filter bitmap 的映射关系
+	index         []*Index          // 在内存中建立的所有内存桩点的 list
+
+	dataBlock     *Block   // 存储 kv 数据的数据块
+	filterBlock   *Block   // 存储 filter 数据的过滤器块
+	indexBlock    *Block   // 存储 index 数据的索引块
 	assistScratch [20]byte // 用于在写索引块时临时使用的辅助缓冲区
 
-	prevKey         []byte // 前一笔数据的 key
-	prevBlockOffset uint64 // 前一个数据块的起始偏移位置
-	prevBlockSize   uint64 // 前一个数据块的大小
+	prevKey         []byte // 上一笔写入数据的 key
+	prevBlockOffset uint64 // 前一个数据块的 offset
+	prevBlockSize   uint64 // 前一个数据块的 size
 }
 
 // sstWriter 构造器
@@ -58,7 +60,8 @@ func NewSSTWriter(file string, conf *Config) (*SSTWriter, error) {
 	}, nil
 }
 
-// 完成 sstable 的全部处理流程，包括将其中的数据溢写到磁盘，并返回信息供上层的 lsm 获取缓存
+// 缓冲区写入磁盘.
+// !完成 sstable 的全部处理流程，包括将其中的数据溢写到磁盘，并返回信息供上层的 lsm 获取缓存
 func (s *SSTWriter) Finish() (size uint64, blockToFilter map[uint64][]byte, index []*Index) {
 	// 完成最后一个块的处理
 	s.refreshBlock()
@@ -70,7 +73,7 @@ func (s *SSTWriter) Finish() (size uint64, blockToFilter map[uint64][]byte, inde
 	// 将索引块写入缓冲区
 	_, _ = s.indexBlock.FlushTo(s.indexBuf)
 
-	// 处理 footer，记录布隆过滤器块起始、大小、索引块起始、大小
+	// !处理 footer，记录布隆过滤器块起始、大小、索引块起始、大小
 	footer := make([]byte, s.conf.SSTFooterSize)
 	size = uint64(s.dataBuf.Len())
 	n := binary.PutUvarint(footer[0:], size)
@@ -93,7 +96,7 @@ func (s *SSTWriter) Finish() (size uint64, blockToFilter map[uint64][]byte, inde
 	return
 }
 
-// 追加一笔数据到 sstable 中
+// 追加一笔数据到 内存block中
 func (s *SSTWriter) Append(key, value []byte) {
 	// 倘若开启一个新的数据块，需要添加索引
 	if s.dataBlock.entriesCnt == 0 {
@@ -107,7 +110,7 @@ func (s *SSTWriter) Append(key, value []byte) {
 	// 记录一下最新的 key
 	s.prevKey = key
 
-	// 倘若数据块大小超限，则需要将其添加到 dataBuffer，并重置块
+	// !倘若数据块大小超限，则需要将其添加到 dataBuffer，并重置块
 	if s.dataBlock.Size() >= s.conf.SSTDataBlockSize {
 		s.refreshBlock()
 	}
@@ -125,7 +128,7 @@ func (s *SSTWriter) Close() {
 }
 
 func (s *SSTWriter) insertIndex(key []byte) {
-	// 获取索引的 key
+	// !获取合适的索引的 key
 	indexKey := util.GetSeparatorBetween(s.prevKey, key)
 	n := binary.PutUvarint(s.assistScratch[0:], s.prevBlockOffset)
 	n += binary.PutUvarint(s.assistScratch[n:], s.prevBlockSize)
@@ -138,6 +141,7 @@ func (s *SSTWriter) insertIndex(key []byte) {
 	})
 }
 
+// !block数据 写入缓冲区
 func (s *SSTWriter) refreshBlock() {
 	if s.conf.Filter.KeyLen() == 0 {
 		return

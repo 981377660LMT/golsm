@@ -14,10 +14,50 @@
 
 3. filter block
    `为减少不必要的磁盘 io ，针对每个 block 在内存维护一个 filter 。`
-   保存block内部的key集合，用于`快速判断key是否不存在于block中`，从而避免不必要的block读取
+   保存 block 内部的 key 集合，用于`快速判断key是否不存在于block中`，从而避免不必要的 block 读取
 4. index block
    ![alt text](image-15.png)
    在各 block 之间设定桩点，存储(key,preBlockOffset,preBlockSize)。
    读流程中，可以先通过 index 快速定位到数据可能存在的 block，再基于 block 的粒度展开详细的数据检索流程。
 
 ## block 实现
+
+1. 数据结构
+2. 追加数据
+   ![alt text](image-17.png)
+3. 导出数据
+   当 block 内数据大小达到阈值或者写流程结束时，block 内的数据会被整合到 sstable 的全局 data buffer 中
+
+## filter 实现
+
+- 一个 bloom filter 实例对应 sstable 中的一个 data block
+- 根据 m（预期的 bitmap 长度）和 n（当前已有的数据 key 数量）推导出合适的 k（hash 函数个数）【这里最佳公式为 `k = ln2 * m / n`，具体参见——布隆过滤器原理篇】
+
+## sstWriter 实现
+
+用于写 block -> 缓冲区 -> 磁盘
+
+1. 数据结构
+2. 追加数据
+   - 每启用一个空白的 dataBlock，需要添加新的索引桩点
+3. 溢写落盘
+   dataBuf、filterBuf、indexBuf、footer
+   footer，记录各个 buf 起始、大小、索引块起始、大小，用于读取时的定位
+
+## sstReader 实现
+
+1. 数据结构
+2. 读取 footer
+   读取数据前，需要先读取 footer 信息，获取到过滤器和索引部分的元数据信息
+3. 读取 index
+4. 读取 filter
+5. 读取 kv 数据
+
+   一大堆 read...
+
+## 主流程串联
+
+1. 读流程
+2. memtable 落盘
+3. sstable 排序归并
+4. lsm tree 复原
